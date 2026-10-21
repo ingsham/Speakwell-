@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { createClient } from "@/lib/supabase/client";
 import { signupSchema } from "@/lib/validation";
@@ -8,19 +9,21 @@ import { signupSchema } from "@/lib/validation";
 type Values = { displayName: string; email: string; password: string };
 
 export default function SignupPage() {
+  const router = useRouter();
   const { register, handleSubmit, formState: { isSubmitting } } = useForm<Values>();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   async function onSubmit(values: Values) {
     const parsed = signupSchema.safeParse(values);
     if (!parsed.success) return setMsg({ ok: false, text: parsed.error.issues[0].message });
-    const { error } = await createClient().auth.signUp({
+    const { data, error } = await createClient().auth.signUp({
       email: parsed.data.email, password: parsed.data.password,
       options: { data: { display_name: parsed.data.displayName },
                  emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    setMsg(error ? { ok: false, text: "We couldn't create that account. Check your details or try logging in." }
-                 : { ok: true, text: "Check your email to confirm your account." });
+    if (error) return setMsg({ ok: false, text: "We couldn't create that account. Check your details or try logging in." });
+    if (data.session) { router.replace("/dashboard"); router.refresh(); return; } // email confirmation is off
+    setMsg({ ok: true, text: "Check your email to confirm your account." });
   }
   return (
     <main className="mx-auto max-w-md px-6 py-16">
