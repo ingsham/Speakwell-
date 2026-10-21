@@ -1,4 +1,4 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED = ["/dashboard", "/practice", "/discover", "/profile", "/settings", "/messages",
@@ -6,14 +6,14 @@ const PROTECTED = ["/dashboard", "/practice", "/discover", "/profile", "/setting
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, anon = process.env.NEXT_PUBLIC_SUPABASE_ANON || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const needsAuth = PROTECTED.some((p) => req.nextUrl.pathname.startsWith(p));
   if (!url || !anon) return needsAuth ? NextResponse.redirect(new URL("/login", req.url)) : res;
 
   const supabase = createServerClient(url, anon, {
     cookies: {
       getAll: () => req.cookies.getAll(),
-      setAll: (list) => {
+      setAll: (list: { name: string; value: string; options: CookieOptions }[]) => {
         list.forEach(({ name, value }) => req.cookies.set(name, value));
         res = NextResponse.next({ request: req });
         list.forEach(({ name, value, options }) => res.cookies.set(name, value, options));

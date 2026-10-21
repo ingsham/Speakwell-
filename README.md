@@ -35,7 +35,7 @@ Sign up, copy your user ID from Supabase > Authentication > Users, then run in t
 There is no public admin flag and no service-role key in this codebase.
 
 ## Deploy
-Push to GitHub, import the repo in Vercel, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SITE_URL`, then add your production URL to Supabase redirect URLs. Free tiers have limits that can change; check Supabase and Vercel pricing pages.
+Push to GitHub, import the repo in Vercel, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON`, `NEXT_PUBLIC_SITE_URL`, then add your production URL to Supabase redirect URLs. Free tiers have limits that can change; check Supabase and Vercel pricing pages.
 
 ## Limitations
 Live voice/video calls are not implemented (they would need signalling infrastructure). Plan: voice-note exchange and text chat. Founder must write the Privacy Policy and Terms and review legal obligations before launch.
