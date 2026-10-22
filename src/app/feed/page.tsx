@@ -1,12 +1,15 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { requireUser, getRole } from "@/lib/auth";
 import { createPost } from "@/app/actions";
 import { Avatar, Flash } from "@/components/ui";
 import PostCard from "@/components/PostCard";
+import VoiceNoteRecorder from "@/components/VoiceNoteRecorder";
 import { POST_SELECT, asPosts, shareCounts } from "@/lib/posts";
 
 export default async function Feed({ searchParams }: { searchParams: Promise<{ tab?: string; ok?: string; error?: string }> }) {
   const sp = await searchParams;
+  const postId = randomUUID();
   const tab = sp.tab === "following" ? "following" : "everyone";
   const { supabase, user } = await requireUser("/feed");
   await supabase.rpc("join_general"); // everyone belongs to the Speakwell Lounge (no-op until an admin exists)
@@ -40,13 +43,15 @@ export default async function Feed({ searchParams }: { searchParams: Promise<{ t
       <Flash ok={sp.ok} error={sp.error} />
       <form action={createPost} className="card space-y-3">
         <input type="hidden" name="back" value={`/feed${tab === "following" ? "?tab=following" : ""}`} />
+        <input type="hidden" name="postId" value={postId} />
         <div className="flex items-start gap-3">
           <Avatar name={me?.display_name ?? "?"} />
           <div className="flex-1">
             <label htmlFor="body" className="sr-only">Share something</label>
-            <textarea id="body" name="body" required maxLength={3000} rows={3} className="field" placeholder={`What's on your mind, ${me?.display_name ?? "friend"}? A win, a question, a challenge…`} />
+            <textarea id="body" name="body" maxLength={3000} rows={3} className="field" placeholder={`What's on your mind, ${me?.display_name ?? "friend"}? A win, a question, a challenge…`} />
           </div>
         </div>
+        <VoiceNoteRecorder postId={postId} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-sm">
             <label htmlFor="aud" className="text-muted">Audience</label>

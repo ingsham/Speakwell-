@@ -1,5 +1,6 @@
 "use server";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { requireUser, type Db } from "@/lib/auth";
 import {
@@ -90,13 +91,25 @@ export async function respondInvitation(f: FormData) {
 export async function createPost(f: FormData) {
   const { supabase, user } = await requireUser();
   const path = back(f, "/feed");
-  const parsed = postSchema.safeParse({ body: str(f, "body") });
+  const submittedPostId = str(f, "postId");
+  const postId = submittedPostId || randomUUID();
+  const audioPath = str(f, "audioPath");
+  const rawBody = str(f, "body");
+  const bodyInput = rawBody.trim() || (audioPath ? "Shared a voice note" : "");
+  const parsed = postSchema.safeParse({ body: bodyInput });
   if (!parsed.success) done(path, "error", parsed.error.issues[0].message);
+  if (submittedPostId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(postId)) done(path, "error", "Please refresh the feed and try again.");
+  if (audioPath && !submittedPostId) done(path, "error", "Please refresh the feed before attaching a voice note.");
+  if (audioPath && audioPath !== `${user.id}/${postId}/voice.webm` && audioPath !== `${user.id}/${postId}/voice.mp4`) done(path, "error", "That voice note could not be attached safely.");
+  if (audioPath) {
+    const { data: uploadedFiles, error: uploadCheckError } = await supabase.storage.from("speakwell-voice-notes").list(`${user.id}/${postId}`);
+    if (uploadCheckError || !uploadedFiles?.some((file) => file.name === audioPath.split("/").pop())) done(path, "error", "Your voice note has not finished uploading. Please attach it again.");
+  }
   // audience: "public" | "followers" | a community id. Community pages send communityId directly.
   const audience = str(f, "audience") || "public";
   const communityId = str(f, "communityId") || (audience !== "public" && audience !== "followers" ? audience : "");
   await check(supabase, supabase.from("posts").insert({
-    author_id: user.id, body: parsed.data!.body,
+    id: postId, author_id: user.id, body: parsed.data!.body, audio_path: audioPath || null,
     community_id: communityId || null, visibility: audience === "followers" && !communityId ? "followers" : "public",
   }), path);
   revalidatePath(path); done(path, "ok", "Posted.");
@@ -129,9 +142,12 @@ export async function toggleLike(f: FormData) {
   revalidatePath(path); done(path, "ok");
 }
 export async function deletePost(f: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase, user } = await requireUser();
   const path = back(f, "/feed");
-  await check(supabase, supabase.from("posts").delete().eq("id", str(f, "postId")), path);
+  const postId = str(f, "postId");
+  const { data: post } = await supabase.from("posts").select("audio_path,author_id").eq("id", postId).maybeSingle();
+  if (post?.audio_path && post.author_id === user.id) await supabase.storage.from("speakwell-voice-notes").remove([post.audio_path]);
+  await check(supabase, supabase.from("posts").delete().eq("id", postId), path);
   revalidatePath(path); done(path, "ok", "Post deleted.");
 }
 export async function deleteComment(f: FormData) {

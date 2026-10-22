@@ -56,3 +56,38 @@ Push to GitHub, import the repo in Vercel, add `NEXT_PUBLIC_SUPABASE_URL`, `NEXT
 
 ## Limitations
 Live voice/video calls are not implemented (they would need signalling infrastructure). Plan: voice-note exchange and text chat. Founder must write the Privacy Policy and Terms and review legal obligations before launch.
+
+## Speakwell connection-first redesign (initial UI phase)
+
+This working branch begins the connection-first redesign while preserving the existing Supabase flows:
+
+- The home page now presents live audio rooms, one-to-one connections, and the community feed as three core experiences.
+- Main navigation now includes Live rooms and Connections.
+- `/connections` brings existing practice invitations, messages, and Discover into one place and reads current counts from the signed-in user's existing Supabase records.
+- `/rooms` explains the intended audio-first room experience and clearly marks live audio as in development. It does not pretend a real-time provider is connected or request microphone access.
+
+### Not yet implemented
+
+LiveKit rooms and private audio calls are not wired up yet. Before adding tables or migrations, inspect the live database schema and reconcile it with this project snapshot. The next phase should add the minimum required schema incrementally, then implement authenticated server-side token creation, room membership and host controls, invitation-to-call flow, block/report enforcement, and real-device tests. Do not run `supabase/setup_all.sql` against the existing production database as a shortcut.
+
+## Speakwell audio connections (migration 0005)
+
+This build adds audio-first live rooms, speaker requests and host approvals, private call invitations, and optional voice notes on feed posts. It is additive: it does not require deleting or rebuilding existing tables.
+
+### Before deploying
+
+1. Apply `supabase/migrations/0005_connection_audio.sql` once to the intended Supabase project after the existing migrations. Do **not** rerun `supabase/setup_all.sql` against a working database.
+2. In Supabase Storage, verify the private `speakwell-voice-notes` bucket exists after migration. The migration adds row-level policies for user uploads and post-audience-based reads. Voice-note playback uses short-lived signed URLs.
+3. Add the following environment variables to your local `.env.local` and deployment provider. Do not commit `.env.local` or share the secret values:
+   - `NEXT_PUBLIC_LIVEKIT_URL` (the LiveKit WebSocket URL, usually `wss://...livekit.cloud`)
+   - `LIVEKIT_API_KEY`
+   - `LIVEKIT_API_SECRET`
+4. Create the LiveKit project and credentials at https://cloud.livekit.io/. The app creates short-lived room-scoped tokens server-side. The API secret must never use a `NEXT_PUBLIC_` prefix.
+5. Install dependencies with `npm install`, then run `npm run typecheck`, `npm test`, and `npm run build` before deploying.
+
+### Important behavior
+
+- Room participation and speaking permission are separate. Listeners connect with publish permission disabled; only a host or approved speaker receives a token that can publish audio. After the host approves a request, the participant should refresh the room page and reconnect to receive updated permission.
+- Private call invitations must be accepted before a token is issued. Invitations expire after 24 hours. The camera stays off until a participant explicitly enables it; the app does not record sessions.
+- Voice notes are optional, limited to 60 seconds and 10 MB in the browser UI, and stored in a private bucket. Access to the signed playback URL is governed by the related post's visibility.
+- Apply the migration and test with two separate accounts before inviting real users. Also verify microphone permission, browser audio playback, blocked-user cases, and RLS behavior in your own Supabase project.
