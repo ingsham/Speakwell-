@@ -9,9 +9,9 @@ export async function createLiveRoom(f: FormData) {
  const title=value(f,"title"), description=value(f,"description").slice(0,500), topic=value(f,"topic").slice(0,60)||"Open conversation";
  if(title.length<3||title.length>90) go("/rooms","error","Give your room a title between 3 and 90 characters.");
  const {data,error}=await supabase.from("live_rooms").insert({creator_id:user.id,title,description:description||null,topic,visibility:value(f,"visibility")==="private"?"private":"public",capacity:12,status:"active"}).select("id").single();
- if (error) go("/rooms","error",error.message||"Could not create the room. Apply migration 0005 first.");
- if (!data) go("/rooms","error","Could not create the room. Apply migration 0005 first.");
- const roomId = data.id;
+ if (error) return go("/rooms","error",error.message||"Could not create the room. Apply migration 0005 first.");
+ const roomId = data?.id;
+ if (!roomId) return go("/rooms","error","Could not create the room. Apply migration 0005 first.");
  const {error:hostError}=await supabase.from("live_room_participants").insert({room_id:roomId,user_id:user.id,role:"host",status:"joined",speaking_request:"none"});
  if(hostError){ await supabase.from("live_rooms").update({status:"ended",ended_at:new Date().toISOString()}).eq("id",roomId); go("/rooms","error","Room created but host setup failed. Please try again."); }
  revalidatePath("/rooms"); redirect(`/rooms/${roomId}`);
