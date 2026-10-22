@@ -4,7 +4,8 @@ import { MessageCircle, UserPlus, Mic } from "lucide-react";
 import { requireUser, getRole } from "@/lib/auth";
 import { toggleFollow, toggleBlock, startConversation, sendInvitation } from "@/app/actions";
 import { Avatar, Flash, ReportForm } from "@/components/ui";
-import PostCard, { POST_SELECT, asPosts } from "@/components/PostCard";
+import PostCard from "@/components/PostCard";
+import { POST_SELECT, asPosts, shareCounts } from "@/lib/posts";
 
 export default async function Profile({ params, searchParams }:
   { params: Promise<{ username: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
@@ -23,6 +24,8 @@ export default async function Profile({ params, searchParams }:
   ]);
   const c = (counts.data as { followers: number; following: number }[] | null)?.[0] ?? { followers: 0, following: 0 };
   const following = !!iFollow.data;
+  const postRows = asPosts(posts.data);
+  const shares = await shareCounts(supabase, postRows.map((x) => x.id));
 
   return (
     <main className="mx-auto max-w-3xl px-6 py-10">
@@ -82,8 +85,8 @@ export default async function Profile({ params, searchParams }:
 
       <h2 className="mt-8 text-lg font-semibold text-forest">Posts</h2>
       <div className="mt-3 space-y-4">
-        {asPosts(posts.data).length
-          ? asPosts(posts.data).map((post) => <PostCard key={post.id} post={post} me={user.id} back={path} canModerate={!!role} />)
+        {postRows.length
+          ? postRows.map((post) => <PostCard key={post.id} post={post} me={user.id} back={path} canModerate={!!role} shares={shares.get(post.id) ?? 0} />)
           : <p className="text-sm text-muted">No posts to show.</p>}
       </div>
     </main>

@@ -92,8 +92,26 @@ export async function createPost(f: FormData) {
   const path = back(f, "/feed");
   const parsed = postSchema.safeParse({ body: str(f, "body") });
   if (!parsed.success) done(path, "error", parsed.error.issues[0].message);
-  await check(supabase, supabase.from("posts").insert({ community_id: str(f, "communityId"), author_id: user.id, body: parsed.data!.body }), path);
-  revalidatePath(path); done(path, "ok");
+  // audience: "public" | "followers" | a community id. Community pages send communityId directly.
+  const audience = str(f, "audience") || "public";
+  const communityId = str(f, "communityId") || (audience !== "public" && audience !== "followers" ? audience : "");
+  await check(supabase, supabase.from("posts").insert({
+    author_id: user.id, body: parsed.data!.body,
+    community_id: communityId || null, visibility: audience === "followers" && !communityId ? "followers" : "public",
+  }), path);
+  revalidatePath(path); done(path, "ok", "Posted.");
+}
+export async function sharePost(f: FormData) {
+  const { supabase, user } = await requireUser();
+  const path = back(f, "/feed");
+  const note = str(f, "body").trim().slice(0, 3000);
+  const { data: src } = await supabase.from("posts").select("id,shared_post_id").eq("id", str(f, "postId")).maybeSingle();
+  if (!src) done(path, "error", "That post is no longer available.");
+  const { error } = await supabase.from("posts").insert({
+    author_id: user.id, body: note, community_id: null, visibility: "public", shared_post_id: src!.shared_post_id ?? src!.id,
+  });
+  if (error) done(path, "error", "This post can't be shared because it's in a private space.");
+  revalidatePath("/feed"); done(path, "ok", "Shared to your profile.");
 }
 export async function addComment(f: FormData) {
   const { supabase, user } = await requireUser();

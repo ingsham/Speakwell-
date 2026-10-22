@@ -9,6 +9,7 @@ A supportive practice and community app for people who stammer. It is a peer-sup
 - Landing page; Sign up and Log in (real Supabase Auth, email confirmation callback)
 - Dashboard (reads real sessions) and Practice studio (browser-only recording: timer, playback, download, delete; nothing uploaded)
 - `supabase/migrations/0001_core_schema.sql`: 23 tables, constraints, indexes, triggers, auto-profile on signup
+- `supabase/migrations/0004_social_feed.sql`: profile posts (public / followers-only), reposts, like and share notifications, fix for community updates
 - `supabase/migrations/0003_social_admin_extras.sql`: moderator role, follower counts, notification triggers, announcements, platform settings, admin stats, default community, moderation guards
 - `supabase/migrations/0002_rls_and_functions.sql`: RLS on every table, race-safe functions for invitations, conversations (messaging rule), community joining, join requests, admin suspend / report resolution with audit log, account deletion, message rate limit
 - `supabase/seed.sql`: clearly labelled demo exercises
@@ -18,7 +19,8 @@ A supportive practice and community app for people who stammer. It is a peer-sup
 - Eight guided practice scenarios (casual conversation, classroom, job interview, phone call, shopping, doctor, public speaking, meeting someone new) with private recording, confidence rating and saved progress
 - Profiles, edit profile, interests, follow / unfollow, follower counts, Discover (search + similar interests)
 - Private messages (live updates, read status), notifications with unread badge
-- Feed, posts, likes, comments, communities (public / approval / invite-only), community moderators
+- Facebook/LinkedIn-style feed: post to everyone or followers only, like, comment, share (repost) and copy link, with notifications
+- Communities with their own posts (public / approval / invite-only), community moderators
 - Practice invitations (accept / decline / complete)
 - Block and report anywhere; blocked list in Settings
 - Admin area: overview analytics, users (suspend, roles), reports queue, communities, platform settings, announcements, exercises
@@ -35,7 +37,8 @@ You can start a private conversation only if the recipient follows you or you ha
 1. Install Git and Node.js LTS.
 2. `npm install`
 3. Copy `.env.example` to `.env.local` and fill in your Supabase URL and anon key.
-4. In the Supabase SQL editor run `0001_core_schema.sql`, then `0002_rls_and_functions.sql`, then `0003_social_admin_extras.sql`, then `seed.sql`.
+4. In the Supabase SQL editor run `0001_core_schema.sql`, then `0002_rls_and_functions.sql`, then `0003_social_admin_extras.sql`, then `0004_social_feed.sql`, then `seed.sql`.
+   **Easier:** paste the single file `supabase/setup_all.sql` instead. It does all of the above and is safe to re-run on an empty/new project (it deletes existing Speakwell tables first).
 5. In Supabase > Authentication > URL Configuration set Site URL to `http://localhost:3000` and add `http://localhost:3000/auth/callback` as a redirect URL.
 6. `npm run dev`
 

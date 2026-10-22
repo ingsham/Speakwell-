@@ -21,7 +21,15 @@ export default function SignupPage() {
       options: { data: { display_name: parsed.data.displayName },
                  emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
-    if (error) return setMsg({ ok: false, text: "We couldn't create that account. Check your details or try logging in." });
+    if (error) {
+      const m = error.message.toLowerCase();
+      const text = m.includes("rate limit") ? "Too many sign-up emails were sent. Try again in an hour, or ask the site owner to turn off email confirmation."
+        : m.includes("already") ? "That email is already registered. Try logging in."
+        : m.includes("password") ? error.message
+        : m.includes("fetch") || m.includes("network") ? "Couldn't reach the server. The site's Supabase settings may be wrong."
+        : `We couldn't create that account (${error.message}).`;
+      return setMsg({ ok: false, text });
+    }
     if (data.session) { router.replace("/dashboard"); router.refresh(); return; } // email confirmation is off
     setMsg({ ok: true, text: "Check your email to confirm your account." });
   }

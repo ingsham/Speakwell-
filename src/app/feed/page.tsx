@@ -1,50 +1,76 @@
 import Link from "next/link";
 import { requireUser, getRole } from "@/lib/auth";
 import { createPost } from "@/app/actions";
-import { Flash } from "@/components/ui";
-import PostCard, { POST_SELECT, asPosts } from "@/components/PostCard";
+import { Avatar, Flash } from "@/components/ui";
+import PostCard from "@/components/PostCard";
+import { POST_SELECT, asPosts, shareCounts } from "@/lib/posts";
 
-export default async function Feed({ searchParams }: { searchParams: Promise<{ ok?: string; error?: string }> }) {
+export default async function Feed({ searchParams }: { searchParams: Promise<{ tab?: string; ok?: string; error?: string }> }) {
   const sp = await searchParams;
+  const tab = sp.tab === "following" ? "following" : "everyone";
   const { supabase, user } = await requireUser("/feed");
   await supabase.rpc("join_general"); // everyone belongs to the Speakwell Lounge (no-op until an admin exists)
-  const [{ data: mem }, role] = await Promise.all([
+  const [{ data: mem }, { data: fol }, { data: me }, role] = await Promise.all([
     supabase.from("community_members").select("community_id,communities(id,name,removed)").eq("user_id", user.id),
+    supabase.from("follows").select("followee_id").eq("follower_id", user.id),
+    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
     getRole(supabase, user.id),
   ]);
   type M = { community_id: string; communities: { id: string; name: string; removed: boolean } | { id: string; name: string; removed: boolean }[] | null };
   const mine = ((mem as unknown as M[]) ?? [])
     .map((m) => (Array.isArray(m.communities) ? m.communities[0] : m.communities))
     .filter((c): c is { id: string; name: string; removed: boolean } => !!c && !c.removed);
-  const ids = mine.map((c) => c.id);
+  const communityIds = mine.map((c) => c.id);
+  const followIds = (fol ?? []).map((f) => f.followee_id as string);
 
-  const { data: posts } = ids.length
-    ? await supabase.from("posts").select(POST_SELECT).in("community_id", ids).order("created_at", { ascending: false }).limit(40)
-    : { data: [] };
+  let query = supabase.from("posts").select(POST_SELECT).order("created_at", { ascending: false }).limit(40);
+  if (tab === "following") {
+    query = query.in("author_id", [user.id, ...followIds]);
+  } else {
+    query = communityIds.length ? query.or(`community_id.is.null,community_id.in.(${communityIds.join(",")})`) : query.is("community_id", null);
+  }
+  const { data: posts } = await query;
+  const rows = asPosts(posts);
+  const shares = await shareCounts(supabase, rows.map((p) => p.id));
+  const tabCls = (t: string) => `rounded-full px-4 py-2 text-sm font-medium ${tab === t ? "bg-forest text-white" : "text-forest hover:bg-mint"}`;
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="text-3xl font-bold text-forest">Feed</h1>
-      <p className="mt-1 text-muted">Wins, questions and encouragement from the communities you've joined.</p>
-      <div className="mt-4"><Flash ok={sp.ok} error={sp.error} /></div>
-
-      {mine.length === 0 ? (
-        <div className="card text-sm">You haven't joined a community yet. <Link href="/communities" className="font-semibold text-forest underline">Browse communities</Link> to start seeing posts.</div>
-      ) : (
-        <form action={createPost} className="card space-y-3">
-          <input type="hidden" name="back" value="/feed" />
-          <label htmlFor="body" className="text-sm font-medium">Share something</label>
-          <textarea id="body" name="body" required maxLength={3000} rows={3} className="field" placeholder="A win, a question, or a word of encouragement…" />
-          <div className="flex flex-wrap items-center gap-3">
-            <label htmlFor="cid" className="text-sm">Post in</label>
-            <select id="cid" name="communityId" className="field w-auto">{mine.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-            <button className="btn btn-primary ml-auto">Post</button>
+    <main className="mx-auto max-w-2xl px-6 py-8">
+      <h1 className="sr-only">Feed</h1>
+      <Flash ok={sp.ok} error={sp.error} />
+      <form action={createPost} className="card space-y-3">
+        <input type="hidden" name="back" value={`/feed${tab === "following" ? "?tab=following" : ""}`} />
+        <div className="flex items-start gap-3">
+          <Avatar name={me?.display_name ?? "?"} />
+          <div className="flex-1">
+            <label htmlFor="body" className="sr-only">Share something</label>
+            <textarea id="body" name="body" required maxLength={3000} rows={3} className="field" placeholder={`What's on your mind, ${me?.display_name ?? "friend"}? A win, a question, a challenge…`} />
           </div>
-        </form>)}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-sm">
+            <label htmlFor="aud" className="text-muted">Audience</label>
+            <select id="aud" name="audience" className="field w-auto py-1.5">
+              <option value="public">🌍 Everyone</option>
+              <option value="followers">👥 Followers only</option>
+              {mine.map((c) => <option key={c.id} value={c.id}>💬 {c.name}</option>)}
+            </select>
+          </div>
+          <button className="btn btn-primary">Post</button>
+        </div>
+      </form>
 
-      <div className="mt-6 space-y-4">
-        {asPosts(posts).length === 0 && mine.length > 0 && <p className="text-sm text-muted">No posts yet. Be the first to share something.</p>}
-        {asPosts(posts).map((p) => <PostCard key={p.id} post={p} me={user.id} back="/feed" canModerate={!!role} />)}
+      <div className="mt-6 flex gap-2" role="tablist" aria-label="Feed view">
+        <Link href="/feed" className={tabCls("everyone")}>Everyone</Link>
+        <Link href="/feed?tab=following" className={tabCls("following")}>Following</Link>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {rows.length === 0 && (
+          <div className="card text-sm text-muted">
+            {tab === "following" ? <>Nothing from people you follow yet. Find people in <Link href="/discover" className="underline">Discover</Link>.</> : "No posts yet. Be the first to share something."}
+          </div>)}
+        {rows.map((p) => <PostCard key={p.id} post={p} me={user.id} back={`/feed${tab === "following" ? "?tab=following" : ""}`} canModerate={!!role} shares={shares.get(p.id) ?? 0} />)}
       </div>
     </main>
   );

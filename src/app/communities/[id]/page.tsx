@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { requireUser, getRole } from "@/lib/auth";
 import { createPost, joinCommunity, leaveCommunity, decideJoinRequest, inviteToCommunity, setMemberRole, removeMember } from "@/app/actions";
 import { Avatar, Flash, ReportForm } from "@/components/ui";
-import PostCard, { POST_SELECT, asPosts } from "@/components/PostCard";
+import PostCard from "@/components/PostCard";
+import { POST_SELECT, asPosts, shareCounts } from "@/lib/posts";
 
 export default async function CommunityPage({ params, searchParams }:
   { params: Promise<{ id: string }>; searchParams: Promise<{ ok?: string; error?: string }> }) {
@@ -24,6 +25,8 @@ export default async function CommunityPage({ params, searchParams }:
   const { data: posts } = (isMember || c.visibility === "public")
     ? await supabase.from("posts").select(POST_SELECT).eq("community_id", id).order("pinned", { ascending: false }).order("created_at", { ascending: false }).limit(40)
     : { data: [] };
+  const postRows = asPosts(posts);
+  const shares = await shareCounts(supabase, postRows.map((x) => x.id));
   const { data: requests } = canMod
     ? await supabase.from("community_join_requests").select("id,user_id,profiles(username,display_name)").eq("community_id", id).eq("status", "pending")
     : { data: [] };
@@ -59,8 +62,8 @@ export default async function CommunityPage({ params, searchParams }:
         </form>)}
 
       <div className="mt-6 space-y-4">
-        {asPosts(posts).length === 0 && <p className="text-sm text-muted">{isMember || c.visibility === "public" ? "No posts yet." : "Join to see posts."}</p>}
-        {asPosts(posts).map((p) => <PostCard key={p.id} post={p} me={user.id} back={path} canModerate={canMod} showCommunity={false} />)}
+        {postRows.length === 0 && <p className="text-sm text-muted">{isMember || c.visibility === "public" ? "No posts yet." : "Join to see posts."}</p>}
+        {postRows.map((p) => <PostCard key={p.id} post={p} me={user.id} back={path} canModerate={canMod} showCommunity={false} shares={shares.get(p.id) ?? 0} />)}
       </div>
 
       {canMod && (
