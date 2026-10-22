@@ -2,20 +2,20 @@ import type { Db } from "@/lib/auth";
 
 type Person = { username: string; display_name: string } | null;
 export type PostRow = {
-  id: string; body: string; created_at: string; pinned: boolean; visibility: string;
+  id: string; body: string; audio_path: string | null; created_at: string; pinned: boolean; visibility: string;
   author_id: string; shared_post_id: string | null;
   author: Person;
   community: { id: string; name: string; visibility: string } | null;
-  shared: { id: string; body: string; created_at: string; author: Person } | null;
+  shared: { id: string; body: string; audio_path: string | null; created_at: string; author: Person } | null;
   reactions: { user_id: string; kind: string }[];
   comments: { id: string; body: string; created_at: string; author_id: string; author: Person }[];
 };
 
 export const POST_SELECT =
-  "id,body,created_at,pinned,visibility,author_id,shared_post_id," +
+  "id,body,audio_path,created_at,pinned,visibility,author_id,shared_post_id," +
   "author:profiles!author_id(username,display_name)," +
   "community:communities!community_id(id,name,visibility)," +
-  "shared:shared_post_id(id,body,created_at,author:profiles!author_id(username,display_name))," +
+  "shared:shared_post_id(id,body,audio_path,created_at,author:profiles!author_id(username,display_name))," +
   "reactions(user_id,kind)," +
   "comments(id,body,created_at,author_id,author:profiles!author_id(username,display_name))";
 

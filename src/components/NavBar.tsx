@@ -34,10 +34,12 @@ export default async function NavBar() {
         <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
           <Link href="/" className={link}>Home</Link>
           <Link href="/practice" className={link}>Practise</Link>
+          <Link href="/rooms" className={link}>Live rooms</Link>
           {signedIn && (<>
             <Link href="/feed" className={link}>Feed</Link>
             <Link href="/discover" className={link}>Discover</Link>
             <Link href="/communities" className={link}>Communities</Link>
+            <Link href="/connections" className={link}>Connections</Link>
             <Link href="/messages" className={link}>Messages</Link>
             <Link href="/notifications" className={link}>Alerts{unread > 0 && <span className="ml-1 rounded-full bg-coral px-1.5 py-0.5 text-xs text-white" aria-label={`${unread} unread`}>{unread}</span>}</Link>
             <Link href="/dashboard" className={link}>Progress</Link>

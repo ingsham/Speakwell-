@@ -3,6 +3,7 @@ import { Heart, MessageCircle, Pin, Repeat2, Globe, Users } from "lucide-react";
 import { addComment, deleteComment, deletePost, setPostFlag, toggleLike, sharePost } from "@/app/actions";
 import { Avatar, ReportForm } from "./ui";
 import CopyLink from "./CopyLink";
+import VoiceNotePlayer from "./VoiceNotePlayer";
 import { timeAgo } from "@/lib/auth";
 import type { PostRow } from "@/lib/posts";
 
@@ -40,6 +41,7 @@ export default function PostCard({ post, me, back, canModerate, showCommunity = 
             {post.pinned && <span className="ml-2 inline-flex items-center gap-1 text-forest"><Pin className="h-3 w-3" aria-hidden />Pinned</span>}
           </p>
           {post.body && <p className="mt-2 whitespace-pre-wrap break-words">{post.body}</p>}
+          {post.audio_path && <VoiceNotePlayer path={post.audio_path} />}
           {isRepost && (
             <div className="mt-3 rounded-xl border border-forest/15 bg-canvas p-3 text-sm">
               {target ? (<>
@@ -48,6 +50,7 @@ export default function PostCard({ post, me, back, canModerate, showCommunity = 
                   {" · "}<Link href={`/post/${target.id}`} className="hover:underline">{timeAgo(target.created_at)}</Link>
                 </p>
                 <p className="mt-1 whitespace-pre-wrap break-words">{target.body}</p>
+                {target.audio_path && <VoiceNotePlayer path={target.audio_path} />}
               </>) : <p className="text-muted">The original post is no longer available.</p>}
             </div>)}
         </div>

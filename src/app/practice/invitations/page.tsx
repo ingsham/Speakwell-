@@ -3,6 +3,7 @@ import { requireUser, timeAgo } from "@/lib/auth";
 import { respondInvitation } from "@/app/actions";
 import { Flash } from "@/components/ui";
 import { scenarios } from "@/lib/scenarios";
+import { sendCallInvitation } from "@/app/live-actions";
 
 type Inv = {
   id: string; sender_id: string; recipient_id: string; message: string | null; status: string; created_at: string;
@@ -42,7 +43,7 @@ export default async function Invitations({ searchParams }: { searchParams: Prom
                   <span className="rounded-full bg-mint px-2 py-0.5 text-xs text-forest">{r.status}</span>
                 </p>
                 {r.message && <p className="mt-2 text-sm">“{r.message}”</p>}
-                {(r.status === "accepted") && <p className="mt-2 text-sm text-muted">Suggested starter: <Link href={`/practice/${sc.slug}`} className="underline">{sc.emoji} {sc.title}</Link>. Take turns playing each side.</p>}
+                {(r.status === "accepted") && <><p className="mt-2 text-sm text-muted">Suggested starter: <Link href={`/practice/${sc.slug}`} className="underline">{sc.emoji} {sc.title}</Link>. Take turns playing each side.</p><form action={sendCallInvitation} className="mt-3 rounded-xl bg-[#F5F8F4] p-3"><input type="hidden" name="username" value={them?.username ?? ""}/><label className="block text-sm font-medium text-forest">Want to continue with a private audio chat?<textarea name="message" maxLength={280} rows={2} className="field mt-1" placeholder="Would you like to have a relaxed chat?"/></label><button className="btn btn-primary mt-2">Invite to an audio call</button></form></>}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {r.status === "pending" && incoming && [act(r.id, "accepted", "Accept", true), act(r.id, "declined", "Decline")]}
                   {r.status === "pending" && !incoming && act(r.id, "cancelled", "Cancel invitation")}

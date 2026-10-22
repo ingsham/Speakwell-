@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessageCircle, UserPlus, Mic } from "lucide-react";
+import { MessageCircle, UserPlus, Mic, PhoneCall } from "lucide-react";
 import { requireUser, getRole } from "@/lib/auth";
 import { toggleFollow, toggleBlock, startConversation, sendInvitation } from "@/app/actions";
+import { sendCallInvitation } from "@/app/live-actions";
 import { Avatar, Flash, ReportForm } from "@/components/ui";
 import PostCard from "@/components/PostCard";
 import { POST_SELECT, asPosts, shareCounts } from "@/lib/posts";
@@ -59,6 +60,15 @@ export default async function Profile({ params, searchParams }:
               <input type="hidden" name="profileId" value={p.id} /><input type="hidden" name="back" value={path} />
               <button className="btn btn-ghost"><MessageCircle className="h-4 w-4" aria-hidden />Message</button>
             </form>
+            <details className="text-sm">
+              <summary className="btn btn-ghost cursor-pointer list-none"><PhoneCall className="h-4 w-4" aria-hidden />Invite to audio call</summary>
+              <form action={sendCallInvitation} className="mt-2 w-72 max-w-full space-y-2 rounded-xl border border-forest/10 bg-white p-3">
+                <input type="hidden" name="username" value={p.username} />
+                <label className="block text-xs font-medium">Optional note</label>
+                <textarea name="message" maxLength={280} rows={3} className="field" placeholder="Would you like to have a relaxed chat?" />
+                <button className="btn btn-primary w-full">Send audio invitation</button>
+              </form>
+            </details>
             <details className="text-sm">
               <summary className="btn btn-ghost cursor-pointer list-none"><Mic className="h-4 w-4" aria-hidden />Invite to practise</summary>
               <form action={sendInvitation} className="mt-2 w-72 max-w-full space-y-2 rounded-xl border border-forest/10 bg-white p-3">
