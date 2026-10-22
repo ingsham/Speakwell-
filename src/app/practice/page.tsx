@@ -11,6 +11,7 @@ export default async function Practice() {
     <main className="mx-auto max-w-5xl px-6 py-10">
       <h1 className="text-3xl font-bold text-forest">Choose a situation to practise</h1>
       <p className="mt-1 text-muted">Each one is a short, scripted conversation. Read their line, then reply your way. Recordings stay on your device.</p>
+      <p className="mt-3 text-sm"><Link href="/practice/invitations" className="font-semibold text-forest underline">Practice invitations</Link> · practise with another person</p>
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {scenarios.map((s) => (
           <Link key={s.slug} href={`/practice/${s.slug}`} className="card block transition hover:-translate-y-0.5 hover:shadow-md">

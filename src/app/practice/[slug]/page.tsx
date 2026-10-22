@@ -12,11 +12,18 @@ const free: Scenario = {
 
 export default async function ScenarioPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const scenario = slug === "free" ? free : bySlug(slug);
-  if (!scenario) notFound();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/practice/${slug}`);
+  let scenario: Scenario | undefined = slug === "free" ? free : bySlug(slug);
+  if (slug === "free") {
+    const { data: ex } = await supabase.from("practice_exercises").select("title,prompt,category").eq("is_active", true).limit(50);
+    if (ex && ex.length) {
+      const e = ex[Math.floor(Math.random() * ex.length)];
+      scenario = { ...free, title: e.title, setting: `Free practice · ${e.category}`, steps: [{ them: e.prompt, hint: "Speak for as long as you like. Pausing and repeating are fine." }] };
+    }
+  }
+  if (!scenario) notFound();
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <Link href="/practice" className="text-sm text-forest underline">← All situations</Link>

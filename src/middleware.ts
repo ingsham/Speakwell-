@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED = ["/dashboard", "/practice", "/discover", "/profile", "/settings", "/messages",
-  "/notifications", "/communities", "/progress", "/admin"];
+  "/notifications", "/communities", "/progress", "/admin", "/feed"];
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
@@ -29,7 +29,7 @@ export async function middleware(req: NextRequest) {
   if (req.nextUrl.pathname.startsWith("/admin") && user) {
     // Defence in depth: RLS + SQL functions remain the real gate.
     const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
-    if (data?.role !== "admin") return NextResponse.redirect(new URL("/dashboard", req.url));
+    if (data?.role !== "admin" && data?.role !== "moderator") return NextResponse.redirect(new URL("/dashboard", req.url));
   }
   return res;
 }

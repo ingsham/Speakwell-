@@ -21,3 +21,29 @@ describe("validation", () => {
     expect(reflectionSchema.safeParse({ durationSeconds: 60, confidence: null }).success).toBe(true);
   });
 });
+
+import { postSchema, communitySchema, profileSchema, reportSchema } from "@/lib/validation";
+import { scenarios } from "@/lib/scenarios";
+
+describe("social validation", () => {
+  it("rejects empty and oversized posts", () => {
+    expect(postSchema.safeParse({ body: "   " }).success).toBe(false);
+    expect(postSchema.safeParse({ body: "a".repeat(3001) }).success).toBe(false);
+    expect(postSchema.safeParse({ body: "hello" }).success).toBe(true);
+  });
+  it("requires a reason of 3+ characters for reports", () => {
+    expect(reportSchema.safeParse({ reason: "no" }).success).toBe(false);
+    expect(reportSchema.safeParse({ reason: "spam links" }).success).toBe(true);
+  });
+  it("validates communities and profiles", () => {
+    expect(communitySchema.safeParse({ name: "ab", visibility: "public" }).success).toBe(false);
+    expect(communitySchema.safeParse({ name: "Interview prep", visibility: "invite_only" }).success).toBe(true);
+    expect(communitySchema.safeParse({ name: "Interview prep", visibility: "secret" }).success).toBe(false);
+    expect(profileSchema.safeParse({ displayName: "Kofi", username: "Bad Name", bio: "", goals: "", country: "", interests: [] }).success).toBe(false);
+    expect(profileSchema.safeParse({ displayName: "Kofi", username: "kofi_1", bio: "", goals: "", country: "", interests: ["music"] }).success).toBe(true);
+  });
+  it("has 8 complete scenarios", () => {
+    expect(scenarios).toHaveLength(8);
+    for (const s of scenarios) { expect(s.steps.length).toBeGreaterThanOrEqual(3); expect(new Set(scenarios.map((x) => x.slug)).size).toBe(8); }
+  });
+});

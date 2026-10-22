@@ -4,9 +4,9 @@ import { scenarios } from "@/lib/scenarios";
 
 const features = [
   { icon: Mic, title: "Practise your way", text: "Guided real-life scenarios. Record yourself privately; recordings stay on your device.", live: true },
-  { icon: Users, title: "Practice partners", text: "Invite people to practise together, with clear consent at every step.", live: false },
-  { icon: MessageCircle, title: "Private messages", text: "Chat one-to-one once there is mutual connection. Block and report anytime.", live: false },
-  { icon: Heart, title: "Communities", text: "Join or create groups with guidelines and moderators.", live: false },
+  { icon: Users, title: "Practice partners", text: "Invite people to practise together, with clear consent at every step.", live: true },
+  { icon: MessageCircle, title: "Private messages", text: "Chat one-to-one once there is mutual connection. Block and report anytime.", live: true },
+  { icon: Heart, title: "Communities", text: "Join or create groups with guidelines and moderators.", live: true },
 ];
 export default function Home() {
   return (
@@ -45,7 +45,12 @@ export default function Home() {
         </div>
       </section>
       <footer className="border-t border-forest/10 py-8 text-center text-sm text-muted">
-        © Speakwell · Guidelines, Privacy and Terms pages are still to be written.
+        <nav aria-label="Footer" className="mb-2 flex flex-wrap justify-center gap-4">
+          <Link href="/about" className="underline">About</Link><Link href="/guidelines" className="underline">Guidelines</Link>
+          <Link href="/privacy" className="underline">Privacy</Link><Link href="/terms" className="underline">Terms</Link>
+          <Link href="/contact" className="underline">Contact</Link>
+        </nav>
+        © Speakwell
       </footer>
     </main>
   );
